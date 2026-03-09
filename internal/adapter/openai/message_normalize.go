@@ -78,7 +78,7 @@ func formatAssistantToolCallsForPrompt(msg map[string]any, traceID string) strin
 				args = normalizeOpenAIArgumentsForPrompt(fn["arguments"])
 			}
 			if name == "" {
-				name = "unknown"
+				continue
 			}
 			if args == "" {
 				args = normalizeOpenAIArgumentsForPrompt(call["arguments"])

@@ -109,7 +109,23 @@ test('parseStandaloneToolCalls ignores fenced code block tool_call examples', ()
   assert.equal(calls.length, 0);
 });
 
-test('sieve keeps late key convergence payload as plain text in strict mode', () => {
+
+test('sieve emits tool_calls in the same chunk processing tick once payload is complete', () => {
+  const state = createToolSieveState();
+  const first = processToolSieveChunk(state, '{"', ['read_file']);
+  const second = processToolSieveChunk(
+    state,
+    'tool_calls":[{"name":"read_file","input":{"path":"README.MD"}}]}',
+    ['read_file'],
+  );
+  const firstCalls = first.filter((evt) => evt.type === 'tool_calls').flatMap((evt) => evt.calls || []);
+  const secondCalls = second.filter((evt) => evt.type === 'tool_calls').flatMap((evt) => evt.calls || []);
+  assert.equal(firstCalls.length, 0);
+  assert.equal(secondCalls.length, 1);
+  assert.equal(secondCalls[0].name, 'read_file');
+});
+
+test('sieve emits tool_calls when late key convergence forms a complete payload', () => {
   const events = runSieve(
     [
       '{"',
@@ -119,12 +135,11 @@ test('sieve keeps late key convergence payload as plain text in strict mode', ()
     ['read_file'],
   );
   const leakedText = collectText(events);
-  const hasToolCall = events.some((evt) => evt.type === 'tool_calls' && Array.isArray(evt.calls) && evt.calls.length > 0);
-  const hasToolDelta = events.some((evt) => evt.type === 'tool_call_deltas' && Array.isArray(evt.deltas) && evt.deltas.length > 0);
-  assert.equal(hasToolCall || hasToolDelta, false);
-  assert.equal(leakedText.includes('{'), true);
-  assert.equal(leakedText.toLowerCase().includes('tool_calls'), true);
+  const finalCalls = events.filter((evt) => evt.type === 'tool_calls').flatMap((evt) => evt.calls || []);
+  assert.equal(finalCalls.length, 1);
+  assert.equal(finalCalls[0].name, 'read_file');
   assert.equal(leakedText.includes('后置正文C。'), true);
+  assert.equal(leakedText.toLowerCase().includes('tool_calls'), false);
 });
 
 test('sieve keeps embedded invalid tool-like json as normal text to avoid stream stalls', () => {
@@ -248,4 +263,10 @@ test('formatOpenAIStreamToolCalls reuses ids with the same idStore', () => {
   assert.equal(first.length, 1);
   assert.equal(second.length, 1);
   assert.equal(first[0].id, second[0].id);
+});
+
+test('parseToolCalls rejects mismatched markup tags', () => {
+  const payload = '<tool_call><name>read_file</function><arguments>{"path":"README.md"}</arguments></tool_call>';
+  const calls = parseToolCalls(payload, ['read_file']);
+  assert.equal(calls.length, 0);
 });

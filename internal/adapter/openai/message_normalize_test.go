@@ -194,6 +194,29 @@ func TestNormalizeOpenAIMessagesForPrompt_PreservesConcatenatedToolArguments(t *
 	}
 }
 
+
+func TestNormalizeOpenAIMessagesForPrompt_AssistantToolCallsMissingNameAreDropped(t *testing.T) {
+	raw := []any{
+		map[string]any{
+			"role": "assistant",
+			"tool_calls": []any{
+				map[string]any{
+					"id":   "call_missing_name",
+					"type": "function",
+					"function": map[string]any{
+						"arguments": `{"path":"README.MD"}`,
+					},
+				},
+			},
+		},
+	}
+
+	normalized := normalizeOpenAIMessagesForPrompt(raw, "")
+	if len(normalized) != 0 {
+		t.Fatalf("expected nameless assistant tool_calls to be dropped, got %#v", normalized)
+	}
+}
+
 func TestNormalizeOpenAIMessagesForPrompt_AssistantNilContentDoesNotInjectNullLiteral(t *testing.T) {
 	raw := []any{
 		map[string]any{
