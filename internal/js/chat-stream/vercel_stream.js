@@ -1,35 +1,22 @@
 'use strict';
 
 const {
-  extractToolNames,
   createToolSieveState,
   processToolSieveChunk,
   flushToolSieve,
   parseStandaloneToolCalls,
   formatOpenAIStreamToolCalls,
 } = require('../helpers/stream-tool-sieve');
-const {
-  BASE_HEADERS,
-} = require('../shared/deepseek-constants');
-
-const {
-  writeOpenAIError,
-} = require('./error_shape');
-const {
-  parseChunkForContent,
-  isCitation,
-} = require('./sse_parse');
-const {
-  buildUsage,
-} = require('./token_usage');
+const { BASE_HEADERS } = require('../shared/deepseek-constants');
+const { writeOpenAIError } = require('./error_shape');
+const { parseChunkForContent, isCitation } = require('./sse_parse');
+const { buildUsage } = require('./token_usage');
 const {
   resolveToolcallPolicy,
   formatIncrementalToolCallDeltas,
   filterIncrementalToolCallDeltasByAllowed,
 } = require('./toolcall_policy');
-const {
-  createChatCompletionEmitter,
-} = require('./stream_emitter');
+const { createChatCompletionEmitter } = require('./stream_emitter');
 const {
   asString,
   isAbortError,
