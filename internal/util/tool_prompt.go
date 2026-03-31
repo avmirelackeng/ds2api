@@ -31,7 +31,7 @@ func BuildToolCallInstructions(toolNames []string) string {
 
 	return `TOOL CALL FORMAT — FOLLOW EXACTLY:
 
-When calling tools, emit ONLY raw XML. No text before, no text after, no markdown fences.
+When calling tools, emit ONLY raw XML at the very end of your response. No text before, no text after, no markdown fences.
 
 <tool_calls>
   <tool_call>
