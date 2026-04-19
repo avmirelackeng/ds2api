@@ -126,7 +126,16 @@ test('sieve keeps embedded invalid tool-like json as normal text to avoid stream
   assert.equal(leakedText.toLowerCase().includes('tool_calls'), true);
 });
 
-test('sieve flushes incomplete captured XML tool blocks without leaking raw tags', () => {
+test('sieve passes malformed executable-looking XML through as text', () => {
+  const chunk = '<tool_call><parameters>{"path":"README.MD"}</parameters></tool_call>';
+  const events = runSieve([chunk], ['read_file']);
+  const leakedText = collectText(events);
+  const hasToolCalls = events.some((evt) => evt.type === 'tool_calls' && evt.calls?.length > 0);
+  assert.equal(hasToolCalls, false);
+  assert.equal(leakedText, chunk);
+});
+
+test('sieve flushes incomplete captured XML tool blocks by falling back to raw text', () => {
   const events = runSieve(
     [
       '前置正文G。',
@@ -137,9 +146,10 @@ test('sieve flushes incomplete captured XML tool blocks without leaking raw tags
     ['read_file'],
   );
   const leakedText = collectText(events);
-  assert.equal(leakedText.includes('前置正文G。'), true);
-  assert.equal(leakedText.toLowerCase().includes('tool_calls'), false);
-  assert.equal(leakedText.includes('<tool_call'), false);
+  const expected = ['前置正文G。', '<tool_calls>\n', '  <tool_call>\n', '    <tool_name>read_file</tool_name>\n'].join('');
+  const hasToolCalls = events.some((evt) => evt.type === 'tool_calls' && evt.calls?.length > 0);
+  assert.equal(hasToolCalls, false);
+  assert.equal(leakedText, expected);
 });
 
 test('sieve captures XML wrapper tags with attributes without leaking wrapper text', () => {

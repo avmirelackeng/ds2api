@@ -60,7 +60,7 @@ func processToolSieveChunk(state *toolStreamSieveState, chunk string, toolNames 
 		if pending == "" {
 			break
 		}
-		start := findToolSegmentStart(pending)
+		start := findToolSegmentStart(state, pending)
 		if start >= 0 {
 			prefix := pending[:start]
 			if prefix != "" {
@@ -74,7 +74,7 @@ func processToolSieveChunk(state *toolStreamSieveState, chunk string, toolNames 
 			continue
 		}
 
-		safe, hold := splitSafeContentForToolDetection(pending)
+		safe, hold := splitSafeContentForToolDetection(state, pending)
 		if safe == "" {
 			break
 		}
@@ -114,14 +114,10 @@ func flushToolSieve(state *toolStreamSieveState, toolNames []string) []toolStrea
 		} else {
 			content := state.capture.String()
 			if content != "" {
-				// If the captured text looks like an incomplete XML tool call block,
-				// swallow it to prevent leaking raw XML tags to the client.
-				if hasOpenXMLToolTag(content) {
-					// Drop it silently — incomplete tool call.
-				} else {
-					state.noteText(content)
-					events = append(events, toolStreamEvent{Content: content})
-				}
+				// If capture never resolved into a real tool call, release the
+				// buffered text instead of swallowing it.
+				state.noteText(content)
+				events = append(events, toolStreamEvent{Content: content})
 			}
 		}
 		state.capture.Reset()
@@ -130,24 +126,22 @@ func flushToolSieve(state *toolStreamSieveState, toolNames []string) []toolStrea
 	}
 	if state.pending.Len() > 0 {
 		content := state.pending.String()
-		// Safety: if pending contains XML tool tag fragments (e.g. "tool_calls>"
-		// from a split closing tag), swallow them instead of leaking.
-		if hasOpenXMLToolTag(content) || looksLikeXMLToolTagFragment(content) {
-			// Drop it — likely an incomplete tool call fragment.
-		} else {
-			state.noteText(content)
-			events = append(events, toolStreamEvent{Content: content})
-		}
+		// If pending never resolved into a real tool call, release it as text.
+		state.noteText(content)
+		events = append(events, toolStreamEvent{Content: content})
 		state.pending.Reset()
 	}
 	return events
 }
 
-func splitSafeContentForToolDetection(s string) (safe, hold string) {
+func splitSafeContentForToolDetection(state *toolStreamSieveState, s string) (safe, hold string) {
 	if s == "" {
 		return "", ""
 	}
 	if xmlIdx := findPartialXMLToolTagStart(s); xmlIdx >= 0 {
+		if insideCodeFenceWithState(state, s[:xmlIdx]) {
+			return s, ""
+		}
 		if xmlIdx > 0 {
 			return s[:xmlIdx], s[xmlIdx:]
 		}
@@ -156,19 +150,33 @@ func splitSafeContentForToolDetection(s string) (safe, hold string) {
 	return s, ""
 }
 
-func findToolSegmentStart(s string) int {
+func findToolSegmentStart(state *toolStreamSieveState, s string) int {
 	if s == "" {
 		return -1
 	}
 	lower := strings.ToLower(s)
-	bestKeyIdx := -1
-	for _, tag := range xmlToolTagsToDetect {
-		idx := strings.Index(lower, tag)
-		if idx >= 0 && (bestKeyIdx < 0 || idx < bestKeyIdx) {
-			bestKeyIdx = idx
+	offset := 0
+	for {
+		bestKeyIdx := -1
+		matchedTag := ""
+		for _, tag := range xmlToolTagsToDetect {
+			idx := strings.Index(lower[offset:], tag)
+			if idx >= 0 {
+				idx += offset
+				if bestKeyIdx < 0 || idx < bestKeyIdx {
+					bestKeyIdx = idx
+					matchedTag = tag
+				}
+			}
 		}
+		if bestKeyIdx < 0 {
+			return -1
+		}
+		if !insideCodeFenceWithState(state, s[:bestKeyIdx]) {
+			return bestKeyIdx
+		}
+		offset = bestKeyIdx + len(matchedTag)
 	}
-	return bestKeyIdx
 }
 
 func consumeToolCapture(state *toolStreamSieveState, toolNames []string) (prefix string, calls []toolcall.ParsedToolCall, suffix string, ready bool) {

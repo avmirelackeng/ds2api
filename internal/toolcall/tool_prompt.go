@@ -36,8 +36,6 @@ func BuildToolCallInstructions(toolNames []string) string {
 
 	return `TOOL CALL FORMAT — FOLLOW EXACTLY:
 
-If you need to call tools, your entire response must be exactly one XML block and nothing else.
-
 <tool_calls>
   <tool_call>
     <tool_name>TOOL_NAME_HERE</tool_name>
@@ -63,7 +61,8 @@ PARAMETER SHAPES:
 - array => repeated tags or <item> children
 - number/bool/null => plain text
 
-❌ WRONG — Do NOT do these:
+【WRONG — Do NOT do these】:
+
 Wrong 1 — mixed text after XML:
   <tool_calls>...</tool_calls> I hope this helps.
 Wrong 2 — function-call syntax:
@@ -74,14 +73,10 @@ Wrong 4 — Markdown code fences:
   ` + "```xml" + `
   <tool_calls>...</tool_calls>
   ` + "```" + `
-Wrong 5 — native tool tokens:
-  <｜Tool｜>call_some_tool{"param":1}<｜Tool｜>
-Wrong 6 — role markers in response:
-  <｜Assistant｜> Here is the result...
 
 Remember: The ONLY valid way to use tools is the <tool_calls> XML block at the end of your response.
 
-✅ CORRECT EXAMPLES:
+【CORRECT EXAMPLES】:
 
 Example A — Single tool:
 <tool_calls>
@@ -127,7 +122,7 @@ fi
   </tool_call>
 </tool_calls>
 
-Remember: Output ONLY the <tool_calls>...</tool_calls> XML block when calling tools.`
+`
 }
 
 func matchAny(name string, candidates ...string) bool {

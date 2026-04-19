@@ -12,7 +12,6 @@ const {
   consumeXMLToolCapture: consumeXMLToolCaptureImpl,
   hasOpenXMLToolTag,
   findPartialXMLToolTagStart,
-  looksLikeXMLToolTagFragment,
 } = require('./sieve-xml');
 function processToolSieveChunk(state, chunk, toolNames) {
   if (!state) {
@@ -77,7 +76,7 @@ function processToolSieveChunk(state, chunk, toolNames) {
       resetIncrementalToolState(state);
       continue;
     }
-    const [safe, hold] = splitSafeContentForToolDetection(pending);
+    const [safe, hold] = splitSafeContentForToolDetection(state, pending);
     if (!safe) {
       break;
     }
@@ -114,26 +113,22 @@ function flushToolSieve(state, toolNames) {
       }
     } else if (state.capture) {
       const content = state.capture;
-      if (!hasOpenXMLToolTag(content) && !looksLikeXMLToolTagFragment(content)) {
-        noteText(state, content);
-        events.push({ type: 'text', text: content });
-      }
+      noteText(state, content);
+      events.push({ type: 'text', text: content });
     }
     state.capture = '';
     state.capturing = false;
     resetIncrementalToolState(state);
   }
   if (state.pending) {
-    if (!hasOpenXMLToolTag(state.pending) && !looksLikeXMLToolTagFragment(state.pending)) {
-      noteText(state, state.pending);
-      events.push({ type: 'text', text: state.pending });
-    }
+    noteText(state, state.pending);
+    events.push({ type: 'text', text: state.pending });
     state.pending = '';
   }
   return events;
 }
 
-function splitSafeContentForToolDetection(s) {
+function splitSafeContentForToolDetection(state, s) {
   const text = s || '';
   if (!text) {
     return ['', ''];
@@ -141,6 +136,9 @@ function splitSafeContentForToolDetection(s) {
   // Only hold back partial XML tool tags.
   const xmlIdx = findPartialXMLToolTagStart(text);
   if (xmlIdx >= 0) {
+    if (insideCodeFenceWithState(state, text.slice(0, xmlIdx))) {
+      return [text, ''];
+    }
     if (xmlIdx > 0) {
       return [text.slice(0, xmlIdx), text.slice(xmlIdx)];
     }
