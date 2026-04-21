@@ -39,7 +39,8 @@ func loadConfig() (*Config, error) {
 		}
 	}
 
-	dsPort := 8273 // default Dune Soundtrack 2 port
+	// Default DS port changed to 8274 to avoid conflict with another local service I run
+	dsPort := 8274
 	if p := os.Getenv("DS_PORT"); p != "" {
 		var err error
 		dsPort, err = strconv.Atoi(p)
