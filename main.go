@@ -54,9 +54,10 @@ func loadConfig() (*Config, error) {
 		dsHost = "localhost"
 	}
 
+	// I prefer binding only to localhost by default for local dev safety
 	host := os.Getenv("HOST")
 	if host == "" {
-		host = defaultHost
+		host = "127.0.0.1"
 	}
 
 	// Debug defaults to false; set DEBUG=true or DEBUG=1 to enable verbose logging
