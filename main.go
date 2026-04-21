@@ -59,10 +59,10 @@ func loadConfig() (*Config, error) {
 		host = defaultHost
 	}
 
-	// I prefer debug on by default locally; set DEBUG=false to suppress
-	debug := true
-	if d := os.Getenv("DEBUG"); d == "false" || d == "0" {
-		debug = false
+	// Debug defaults to false; set DEBUG=true or DEBUG=1 to enable verbose logging
+	debug := false
+	if d := os.Getenv("DEBUG"); d == "true" || d == "1" {
+		debug = true
 	}
 
 	return &Config{
