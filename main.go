@@ -59,9 +59,10 @@ func loadConfig() (*Config, error) {
 		host = defaultHost
 	}
 
-	debug := false
-	if d := os.Getenv("DEBUG"); d == "true" || d == "1" {
-		debug = true
+	// I prefer debug on by default locally; set DEBUG=false to suppress
+	debug := true
+	if d := os.Getenv("DEBUG"); d == "false" || d == "0" {
+		debug = false
 	}
 
 	return &Config{
