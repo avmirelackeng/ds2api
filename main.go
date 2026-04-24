@@ -98,12 +98,13 @@ func main() {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	log.Printf("[%s] version=%s listening on %s", appName, appVersion, addr)
 
-	// Added read/write timeouts to avoid hanging connections during local testing
+	// Bumped timeouts: 15s felt too tight when DS is slow to respond under load;
+	// 30s read/write gives more breathing room without risking indefinite hangs.
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
