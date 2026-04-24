@@ -91,6 +91,7 @@ func main() {
 	if cfg.Debug {
 		log.Printf("[%s] debug mode enabled", appName)
 		log.Printf("[%s] connecting to DS at %s:%d", appName, cfg.DSHost, cfg.DSPort)
+		log.Printf("[%s] read/write timeout: 30s, idle timeout: 60s", appName)
 	}
 
 	router := buildRouter(cfg)
@@ -105,7 +106,7 @@ func main() {
 		Handler:      router,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		IdleTimeout:  120 * time.Second, // increased from 60s; keeps connections alive longer on my slow home network
 	}
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
