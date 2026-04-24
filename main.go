@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -97,9 +98,13 @@ func main() {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	log.Printf("[%s] version=%s listening on %s", appName, appVersion, addr)
 
+	// Added read/write timeouts to avoid hanging connections during local testing
 	server := &http.Server{
-		Addr:    addr,
-		Handler: router,
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
