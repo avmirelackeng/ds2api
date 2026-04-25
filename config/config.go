@@ -32,13 +32,13 @@ type Config struct {
 // It returns an error if any required variables are missing or invalid.
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:        getEnvOrDefault("PORT", "8080"),
-		Host:        getEnvOrDefault("HOST", "0.0.0.0"),
-		DSHost:      getEnvOrDefault("DS_HOST", ""),
-		DSPort:      getEnvOrDefault("DS_PORT", "5000"),
-		DSUser:      getEnvOrDefault("DS_USER", ""),
-		DSPassword:  getEnvOrDefault("DS_PASSWORD", ""),
-		APIKey:      getEnvOrDefault("API_KEY", ""),
+		Port:       getEnvOrDefault("PORT", "8080"),
+		Host:       getEnvOrDefault("HOST", "0.0.0.0"),
+		DSHost:     getEnvOrDefault("DS_HOST", ""),
+		DSPort:     getEnvOrDefault("DS_PORT", "5001"), // my DS uses 5001 (HTTPS port)
+		DSUser:     getEnvOrDefault("DS_USER", ""),
+		DSPassword: getEnvOrDefault("DS_PASSWORD", ""),
+		APIKey:     getEnvOrDefault("API_KEY", ""),
 	}
 
 	// Parse boolean fields
@@ -48,7 +48,7 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid DEBUG value: %w", err)
 	}
 
-	cfg.DSSecure, err = parseBool(getEnvOrDefault("DS_SECURE", "false"))
+	cfg.DSSecure, err = parseBool(getEnvOrDefault("DS_SECURE", "true")) // default to secure
 	if err != nil {
 		return nil, fmt.Errorf("invalid DS_SECURE value: %w", err)
 	}
@@ -115,6 +115,6 @@ func parseBool(s string) (bool, error) {
 	case "false", "0", "no", "off", "":
 		return false, nil
 	default:
-		return false, fmt.Errorf("cannot parse %q as bool", s)
+		return false, fmt.Errorf("unrecognized boolean value: %q", s)
 	}
 }
